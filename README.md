@@ -104,10 +104,7 @@ The iterative refinement of the 3D U-Net architecture proved highly effective. T
 ## ✨ Qualitative Results
 
 The final optimized U-Net model demonstrates a remarkable ability to restore anatomical structures from heavily corrupted inputs.
-
-| Noisy Input | Denoised (Optimized U-Net) | Denoised (3DWGAN) | Ground Truth |
-| :---: | :---: | :---: | :---: |
-| ![Header Image](result/3d_unet_attention_model3_output.png)  |
+![Header Image](result/3d_unet_attention_model3_output.png)
 *(Note: Visual outputs for all models can be found in the `/result` directory.)*
 
 ---
