@@ -1,0 +1,11 @@
+# Core libraries for deep learning and data manipulation
+tensorflow>=2.15.0
+numpy
+scipy
+
+# Libraries for visualization
+matplotlib
+seaborn
+
+# Library for interactive widgets (used in analysis notebooks)
+ipywidgets
