@@ -33,34 +33,71 @@ All experiments utilized the `ds002306` dataset from OpenNeuro. A custom `tf.ker
 - **Noise Model:** Realistic Rician noise was synthetically added to create (Noisy Input, Clean Target) pairs.
 
 ### Architecture 1: 3D U-Net with Attention (Iterative Development)
-Our primary investigation involved a 3D U-Net enhanced with CBAM (Convolutional Block Attention Module). The model's design evolved over three distinct attempts, culminating in an optimized, high-performance model.
-*(Details of Attempt 1, 2, and 3 are omitted for brevity here but are documented in the notebooks and project report.)*
-- **Final Optimized U-Net (Model 3):** This version replaced the complex LSTM bottleneck with a stable **Residual Block** and was trained with a robust pipeline featuring **on-the-fly data augmentation** and **variable-level Rician noise**. Its training objective was a **balanced composite loss** combining Mean Absolute Error (MAE) and the Structural Similarity Index (SSIM).
+Our primary investigation involved a 3D U-Net enhanced with CBAM (Convolutional Block Attention Module). The model's design evolved over three distinct attempts.
+
+---
+#### **Attempt 1: Baseline Model**
+The goal was to establish a performance baseline using a state-of-the-art architecture on a small dataset.
+
+- **Dataset:** **10 fMRI files**, totaling approximately **2,810** 3D volumes.
+- **Architecture:** A 3D U-Net backbone with CBAM modules. The bottleneck uniquely featured a **Bidirectional LSTM** layer to model inter-slice dependencies.
+- **Data Pipeline:**
+    - **Noise Level:** **Constant** Rician noise (σ = 0.1).
+    - **Augmentation:** None.
+- **Loss Function:** `binary_crossentropy`.
+- **Result:** Achieved a satisfactory PSNR of **34.54 dB** but produced over-smoothed images with significant detail loss.
+
+---
+#### **Attempt 2: Data Scaling & Fine-Tuning**
+This attempt investigated if more data could improve the baseline model and if fine-tuning could recover lost details.
+
+- **Dataset:** **20 fMRI files**, totaling approximately **5,620** 3D volumes.
+- **Architecture:** Identical to Attempt 1 (3D Attn U-Net + **LSTM**).
+- **Data Pipeline:** Identical to Attempt 1 (**Constant** noise, **No** augmentation).
+- **Loss Function:**
+    - *Phase A (Scaling):* `binary_crossentropy`.
+    - *Phase B (Fine-Tuning):* A heavily SSIM-weighted `composite_loss` (α=0.8).
+- **Result:**
+    - *Phase A:* Performance **degraded** to **33.28 dB** PSNR, indicating the architecture could not generalize.
+    - *Phase B:* All fine-tuning attempts **failed** due to severe overfitting.
+
+---
+#### **Attempt 3: Final Optimized Model**
+This final iteration was a complete redesign based on the lessons learned from the previous failures.
+
+- **Dataset:** **20 fMRI files** (approx. **5,620** volumes).
+- **Architecture:** The **LSTM was removed** from the bottleneck and replaced with a more stable **Residual Block** to improve gradient flow. Skip connections were also enhanced with additional CBAM modules.
+- **Data Pipeline (Robust):**
+    - **Noise Level:** **Variable** Rician noise, with σ randomly sampled from a range of [0.05, 0.15] for each training sample.
+    - **Augmentation:** **On-the-fly data augmentation** was enabled (random flips and intensity scaling).
+- **Loss Function:** A **balanced composite loss** (`α=0.5`) combining Mean Absolute Error (MAE) for numerical accuracy and Structural Similarity Index (SSIM) for perceptual quality.
+- **Result:** This holistic approach yielded the best performance of the project, with a PSNR of **37.62 dB** and an SSIM of **0.9223**.
 
 ---
 ### Architecture 2: 3D Wasserstein GAN
-As an alternative, a generative approach was implemented to learn the distribution of clean fMRI data directly, rather than performing direct pixel-wise reconstruction.
+As an alternative approach, a generative model was implemented to learn the distribution of clean fMRI data directly, rather than performing direct pixel-wise reconstruction.
 
 - **Architecture:**
     - **Generator:** A 3D encoder-decoder network with residual connections, designed to transform a noisy volume into a plausible clean volume.
     - **Discriminator (Critic):** A 3D CNN, stabilized with Spectral Normalization, trained to distinguish between real clean volumes and the generator's denoised outputs.
-- **Training Objective:** The model was trained adversarially using the **Wasserstein distance** with a gradient penalty (`WGAN-GP`). This objective function provides a more stable training signal compared to standard GANs, encouraging the generator to produce outputs that are perceptually realistic and structurally coherent.
+- **Training Objective:** The model was trained adversarially using the **Wasserstein distance** with a gradient penalty (`WGAN-GP`). This objective function provides a more stable training signal compared to standard GANs, encouraging the generator to produce outputs that are perceptually realistic. The training involved an asymmetric update schedule with 5 critic updates per generator update.
+- **Challenges:** The training dynamics revealed the inherent instability of adversarial processes. While the model successfully learned to capture low-frequency brain structures, its quantitative performance was limited by patch-based training artifacts and the volatile nature of the generator-critic balance.
 
 ---
 
 ## 📈 Results Summary & Comparison
 
-The iterative refinement of the 3D U-Net architecture proved highly effective, with the final optimized model significantly outperforming both the baseline U-Net attempts and the 3DWGAN on quantitative metrics.
+The iterative refinement of the 3D U-Net architecture proved highly effective. The final optimized model (Model 3) significantly outperformed all other approaches on quantitative metrics.
 
-| Feature / Metric | Model 1 (Baseline U-Net) | Model 2 (Data-Scaled U-Net) | **Model 3 (Optimized U-Net)** | 3D WGAN |
+| Feature / Metric | Model 1 (Baseline U-Net) | Model 2 (Data-Scaled U-Net) | **Model 3 (Optimized U-Net)** | 3D WGAN (Optimized) |
 | :--- | :---: | :---: | :---: | :---: |
 | **Dataset Size** | ~2.8k vol | ~5.6k vol | **~5.6k vol** | ~5.6k vol |
-| **Architecture** | Attn U-Net + LSTM | Attn U-Net + LSTM | **Attn U-Net + No LSTM** | GAN (Generator/Discriminator) |
+| **Architecture** | Attn U-Net + LSTM | Attn U-Net + LSTM | **Attn U-Net + No LSTM** | GAN (Generator/Critic) |
 | **Key Innovation**| Baseline | Data Scaling Test | **Robust Pipeline & Loss** | Adversarial Training |
-| **Test PSNR (dB)** | 34.54 | 33.28 | **37.62 (Highest)** | 32.51 |
-| **Test SSIM** | 0.865 | 0.796 | **0.9223 (Highest)** | 0.887 |
+| **Test PSNR (dB)** | 34.54 | 33.28 | **37.62 (Highest)** | 24.8 |
+| **Test SSIM** | 0.865 | 0.796 | **0.9223 (Highest)** | 0.34 |
 
-**Conclusion from Results:** While the 3DWGAN produced visually plausible results and effectively learned the noise distribution, the optimized 3D U-Net (Model 3) provided superior performance in terms of both numerical accuracy (PSNR) and structural similarity (SSIM). This suggests that for this specific denoising task, a well-engineered direct reconstruction model with a carefully chosen loss function is more effective than the generative approach.
+**Conclusion from Results:** While the 3DWGAN produced visually plausible results by learning the general structure of the brain, the optimized 3D U-Net (Model 3) provided far superior performance in terms of both numerical accuracy (PSNR) and structural similarity (SSIM). This suggests that for this specific denoising task, a well-engineered direct reconstruction model with a carefully chosen loss function is more effective than the generative approach.
 
 ---
 
@@ -70,19 +107,33 @@ The final optimized U-Net model demonstrates a remarkable ability to restore ana
 
 | Noisy Input | Denoised (Optimized U-Net) | Denoised (3DWGAN) | Ground Truth |
 | :---: | :---: | :---: | :---: |
-| ![Noisy Input](result/3d_unet_attention_model3_output.png) | ![Denoised U-Net](result/3d_unet_attention_model3_best.png) | ![Denoised WGAN](result/3d_wgan_output.png) | *(Buraya GT resmi)* |
+| ![Noisy Input](result/noisy_example.png) | ![Denoised U-Net](result/3d_unet_attention_model3_best.png) | ![Denoised WGAN](result/3d_wgan_output.png) | ![Ground Truth](result/ground_truth_example.png) |
 *(Note: Visual outputs for all models can be found in the `/result` directory.)*
 
 ---
 
 ## 📂 Repository Structure
 
+The repository is organized to reflect the experimental process:
 ```
 .
 ├── 3D_UNet_Attention_Architecture/
-│   ├── model_1/, model_2/, model_3/
+│   ├── model_1/
+│   │   └── 3d-cnn-attention-lstm-model-1.ipynb
+│   ├── model_2/
+│   │   ├── 3d-cnn-attention-lstm-model-2-fine-tunning.ipynb
+│   │   └── 3d-cnn-attention-lstm-model-2.ipynb
+│   └── model_3/
+│       ├── 01-dl-fmri-data-preparation.ipynb
+│       └── 03-final-model-training-and-evaluation.ipynb
+│
 ├── 3D_WGAN_Architecture/
+│   └── 3dwgan_model.ipynb
+│
 ├── result/
+│   ├── 3d_unet_attention_model1_output.png
+│   └── ... (and other result images)
+│
 ├── .gitignore
 ├── LICENSE
 ├── requirements.txt
@@ -105,9 +156,17 @@ ipywidgets
 ```
 
 ### Installation & Running
-1.  Clone this repository and navigate into the directory.
-2.  Install dependencies: `pip install -r requirements.txt`
-3.  The Jupyter Notebooks (`.ipynb`) for each experiment are located in their respective architecture and model folders.
+1.  **Clone the repository:**
+    ```bash
+    git clone https://github.com/gokhankarabag/Deep-Learning-for-fMRI-Denoising.git
+    cd Deep-Learning-for-fMRI-Denoising
+    ```
+2.  **Install dependencies:**
+    ```bash
+    pip install -r requirements.txt
+    ```
+3.  **Download the Data:** The `ds002306` dataset used can be downloaded from [OpenNeuro](https://openneuro.org/datasets/ds002306). It is recommended to create a `data/` directory at the root of the project to store the files.
+4.  **Run the Notebooks:** The Jupyter Notebooks (`.ipynb`) for each experiment are located in their respective architecture and model folders.
 
 ---
 
@@ -115,7 +174,7 @@ ipywidgets
 
 If you find this work useful for your research, please consider citing our project report:
 ```bibtex
-@mastersthesis{Karabag2025FMRI,
+@project{THI2025FMRI,
   author  = {Gökhan Karabag and Mihir Joshi and Prajwal Shet and Aravind Gangavarapu and Shreyash Deokate},
   title   = {Deep Learning Based fMRI Denoising: 3D U-Net Attention, 3DWGAN},
   school  = {Technische Hochschule Ingolstadt},
