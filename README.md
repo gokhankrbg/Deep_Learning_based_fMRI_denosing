@@ -120,12 +120,14 @@ The repository is organized to reflect the experimental process:
 │   ├── model_2/
 │   │   ├── 3d-cnn-attention-lstm-model-2-fine-tunning.ipynb
 │   │   └── 3d-cnn-attention-lstm-model-2.ipynb
+│   │   └── model_2.keras
 │   └── model_3/
-│       ├── 01-dl-fmri-data-preparation.ipynb
-│       └── 03-final-model-training-and-evaluation.ipynb
+│       ├── dl-fmri-data-preparation.ipynb
+│       └── 3d-unet-attention-model-3.ipynb
 │
 ├── 3D_WGAN_Architecture/
-│   └── 3dwgan_model.ipynb
+│   └── 3d_wgan_slicing.ipynb
+│   └── 3d_wgan_modelling.ipynb
 │
 ├── result/
 │   ├── 3d_unet_attention_model1_output.png
