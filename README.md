@@ -1,10 +1,10 @@
 # Deep Learning for fMRI Denoising: A Comparative Analysis of 3D U-Net Attention and Wasserstein GAN Architectures for fMRI Denoising
 
-This repository contains the official implementation for the Master's project "Deep Learning Based fMRI Denoising", comparing 3D U-Net Attention and 3DWGAN architectures. This study systematically develops and refines these models to enhance the signal-to-noise ratio (SNR) in functional Magnetic Resonance Imaging (fMRI) data.
+This repository contains the official implementation for the medical imaging project "Deep Learning Based fMRI Denoising", comparing 3D U-Net Attention and 3DWGAN architectures. This study systematically develops and refines these models to enhance the signal-to-noise ratio (SNR) in functional Magnetic Resonance Imaging (fMRI) data.
 
 ---
 
-## 📖 Table of Contents
+## Table of Contents
 - [Project Overview](#-project-overview)
 - [Methodology and Architectures](#-methodology-and-architectures)
   - [Common Data Pipeline](#common-data-pipeline)
@@ -19,19 +19,21 @@ This repository contains the official implementation for the Master's project "D
 
 ---
 
-## 📝 Project Overview
+## Project Overview
 Functional MRI (fMRI) data is inherently corrupted by significant noise, which compromises signal quality and limits neurobiological interpretations. This project tackles this challenge by implementing and comparing two state-of-the-art deep learning paradigms. The goal is to develop a robust model that can significantly reduce noise while preserving the fine-grained anatomical and structural details essential for accurate neuroscience research.
 
 ---
 
-## 🛠️ Methodology and Architectures
+## Methodology and Architectures
 
 ### Common Data Pipeline
-All experiments utilized the `ds002306` dataset from OpenNeuro. A custom `tf.keras.utils.Sequence` data generator was implemented to perform on-the-fly preprocessing. Foundational steps for all models included:
-- **Resampling:** Volumetric data was resized to a uniform shape of `(64, 64, 48)`.
-- **Normalization:** Voxel intensities were scaled to a `[0, 1]` range.
-- **Noise Model:** Realistic Rician noise was synthetically added to create (Noisy Input, Clean Target) pairs.
 
+All experiments utilized the `ds002306` dataset from OpenNeuro. A key component of our methodology was a custom `tf.keras.utils.Sequence` data generator designed for **on-the-fly preprocessing**. This approach means that instead of preparing and saving all noisy-clean pairs to disk beforehand, the necessary transformations are applied dynamically **each time the model requests a new batch of data** during the training loop. This happens multiple times within every single epoch and is crucial for implementing strategies like variable noise and data augmentation effectively.
+
+The foundational preprocessing steps applied to every 3D volume within this dynamic pipeline included:
+
+- **Normalization:** Voxel intensities were scaled to a `[0, 1]` range to ensure a consistent data scale for the model. The clean, normalized volume serves as the ground truth target.
+- **Noise Model:** Realistic Rician noise was synthetically added to the normalized, clean volumes to create the (Noisy Input, Clean Target) pairs required for the model to learn the denoising task.
 ### Architecture 1: 3D U-Net with Attention (Iterative Development)
 Our primary investigation involved a 3D U-Net enhanced with CBAM (Convolutional Block Attention Module). The model's design evolved over three distinct attempts.
 
@@ -85,7 +87,7 @@ As an alternative approach, a generative model was implemented to learn the dist
 
 ---
 
-## 📈 Results Summary & Comparison
+## Results Summary & Comparison
 
 The iterative refinement of the 3D U-Net architecture proved highly effective. The final optimized model (Model 3) significantly outperformed all other approaches on quantitative metrics.
 
@@ -101,7 +103,7 @@ The iterative refinement of the 3D U-Net architecture proved highly effective. T
 
 ---
 
-## ✨ Qualitative Results
+## Qualitative Results
 
 The final optimized U-Net model demonstrates a remarkable ability to restore anatomical structures from heavily corrupted inputs.
 ![Header Image](result/3d_unet_attention_model3_output.png)
@@ -109,7 +111,7 @@ The final optimized U-Net model demonstrates a remarkable ability to restore ana
 
 ---
 
-## 📂 Repository Structure
+## Repository Structure
 
 The repository is organized to reflect the experimental process:
 ```
@@ -141,7 +143,7 @@ The repository is organized to reflect the experimental process:
 
 ---
 
-## ⚙️ Setup and Usage
+## Setup and Usage
 
 ### Prerequisites
 A `requirements.txt` file is provided for easy setup. It is recommended to use a virtual environment.
